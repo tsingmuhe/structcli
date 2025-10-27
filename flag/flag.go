@@ -262,10 +262,6 @@ func (f *FlagSet) parseShort(arg0 string, args []string) ([]string, error) {
 	return args, nil
 }
 
-func (f *FlagSet) Lookup(name string) *Flag {
-	return nil
-}
-
 func (f *FlagSet) NArg() int { return len(f.args) }
 
 func (f *FlagSet) Args() []string { return f.args }
