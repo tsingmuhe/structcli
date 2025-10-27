@@ -20,4 +20,6 @@ func (f *float64Value) Set(s string) error {
 	return err
 }
 
-func (f *float64Value) IsBool() bool { return false }
+func (f *FlagSet) Float64Var(p *float64, value float64, shorthand, name, description string) {
+	f.Var(newFloat64Value(value, p), shorthand, name, description)
+}

@@ -20,4 +20,6 @@ func (i *intValue) Set(s string) error {
 	return err
 }
 
-func (i *intValue) IsBool() bool { return false }
+func (f *FlagSet) IntVar(p *int, value int, shorthand, name, description string) {
+	f.Var(newIntValue(value, p), shorthand, name, description)
+}

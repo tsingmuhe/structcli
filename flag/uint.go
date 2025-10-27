@@ -20,4 +20,6 @@ func (i *uintValue) Set(s string) error {
 	return err
 }
 
-func (i *uintValue) IsBool() bool { return false }
+func (f *FlagSet) UintVar(p *uint, value uint, shorthand, name, description string) {
+	f.Var(newUintValue(value, p), shorthand, name, description)
+}

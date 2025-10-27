@@ -40,4 +40,6 @@ func (v textValue) Set(s string) error {
 	return v.p.UnmarshalText([]byte(s))
 }
 
-func (v textValue) IsBool() bool { return false }
+func (f *FlagSet) TextVar(p encoding.TextUnmarshaler, value encoding.TextMarshaler, shorthand, name, description string) {
+	f.Var(newTextValue(value, p), shorthand, name, description)
+}

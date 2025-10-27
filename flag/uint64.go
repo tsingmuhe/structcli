@@ -20,4 +20,6 @@ func (i *uint64Value) Set(s string) error {
 	return err
 }
 
-func (i *uint64Value) IsBool() bool { return false }
+func (f *FlagSet) Uint64Var(p *uint64, value uint64, shorthand, name, description string) {
+	f.Var(newUint64Value(value, p), shorthand, name, description)
+}

@@ -14,4 +14,6 @@ func (s *stringValue) Set(val string) error {
 	return nil
 }
 
-func (s *stringValue) IsBool() bool { return false }
+func (f *FlagSet) StringVar(p *string, value string, shorthand, name, description string) {
+	f.Var(newStringValue(value, p), shorthand, name, description)
+}

@@ -21,3 +21,7 @@ func (b *boolValue) Set(s string) error {
 }
 
 func (b *boolValue) IsBool() bool { return true }
+
+func (f *FlagSet) BoolVar(p *bool, value bool, shorthand, name, description string) {
+	f.Var(newBoolValue(value, p), shorthand, name, description)
+}
