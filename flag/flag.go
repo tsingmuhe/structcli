@@ -105,6 +105,29 @@ func (f *FlagSet) addFlag(flag *Flag) {
 	f.shorthands[short] = flag
 }
 
+func (f *FlagSet) Set(name, value string) error {
+	flag, ok := f.formal[name]
+	if !ok {
+		return fmt.Errorf("no such flag: --%v", name)
+	}
+
+	return f.set(flag, value)
+}
+
+func (f *FlagSet) set(flag *Flag, value string) error {
+	err := flag.Value.Set(value)
+	if err != nil {
+		return err
+	}
+
+	if f.actual == nil {
+		f.actual = make(map[string]*Flag)
+	}
+
+	f.actual[flag.Name] = flag
+	return nil
+}
+
 func (f *FlagSet) Parse(args []string) (err error) {
 	f.parsed = true
 	f.args = make([]string, 0, len(args))
@@ -155,11 +178,11 @@ func (f *FlagSet) parseLong(arg0 string, args []string) ([]string, error) {
 
 	if fv, ok := flag.Value.(BoolValue); ok && fv.IsBool() {
 		if hasValue {
-			if err := flag.Value.Set(value); err != nil {
+			if err := f.set(flag, value); err != nil {
 				return args, f.failf("invalid boolean value %q for --%s", value, name)
 			}
 		} else {
-			if err := flag.Value.Set("true"); err != nil {
+			if err := f.set(flag, "true"); err != nil {
 				return args, f.failf("invalid boolean flag: --%s", name)
 			}
 		}
@@ -173,23 +196,18 @@ func (f *FlagSet) parseLong(arg0 string, args []string) ([]string, error) {
 			return args, f.failf("flag needs an argument: --%s", name)
 		}
 
-		if err := flag.Value.Set(value); err != nil {
+		if err := f.set(flag, value); err != nil {
 			return args, f.failf("invalid value %q for flag --%s", value, name)
 		}
 	}
 
-	if f.actual == nil {
-		f.actual = make(map[string]*Flag)
-	}
-
-	f.actual[name] = flag
 	return args, nil
 }
 
-func (f *FlagSet) parseShort(s string, args []string) (a []string, err error) {
-	name := s[1:]
+func (f *FlagSet) parseShort(arg0 string, args []string) ([]string, error) {
+	name := arg0[1:]
 	if len(name) == 0 || name[0] == '-' || name[0] == '=' {
-		return args, f.failf("bad flag syntax: %s", s)
+		return args, f.failf("bad flag syntax: %s", arg0)
 	}
 
 	value, hasValue := "", false
@@ -201,49 +219,47 @@ func (f *FlagSet) parseShort(s string, args []string) (a []string, err error) {
 		short := name[i]
 		flag, ok := f.shorthands[short]
 		if !ok {
-			return args, f.failf("flag provided but not defined: -%v", short)
+			return args, f.failf("flag provided but not defined: -%s", string(short))
 		}
 
 		isLast := i == len(name)-1
-		if isLast { //last one
-			if flag.Value.IsBool() { // special case: doesn't need an arg
-				if hasValue { // '--flag=arg'
-					if err := flag.Value.Set(value); err != nil {
-						return args, f.failf("invalid boolean value %q for -%s: %v", value, name, err)
+		if isLast {
+			if fv, ok := flag.Value.(BoolValue); ok && fv.IsBool() {
+				if hasValue {
+					if err := f.set(flag, value); err != nil {
+						return args, f.failf("invalid boolean value %q for -%s", value, string(short))
 					}
-				} else { // '--flag'
-					if err := flag.Value.Set("true"); err != nil {
-						return args, f.failf("invalid boolean flag %s: %v", name, err)
+				} else {
+					if err := f.set(flag, "true"); err != nil {
+						return args, f.failf("invalid boolean flag: -%s", string(short))
 					}
 				}
 			} else {
-				// It must have a value, which might be the next argument.
-				if !hasValue && len(args) > 0 { // '--flag arg'
-					// value is the next arg
+				if !hasValue && len(args) > 0 {
 					hasValue = true
 					value, args = args[0], args[1:]
 				}
 
-				if !hasValue { //'--flag'
-					return args, f.failf("flag needs an argument: -%s", name)
+				if !hasValue {
+					return args, f.failf("flag needs an argument: -%s", string(short))
 				}
 
-				if err := flag.Value.Set(value); err != nil {
-					return args, f.failf("invalid value %q for flag -%s: %v", value, name, err)
+				if err := f.set(flag, value); err != nil {
+					return args, f.failf("invalid value %q for flag -%s", value, string(short))
 				}
 			}
 		} else {
-			if flag.Value.IsBool() {
-				if err := flag.Value.Set("true"); err != nil {
-					return args, f.failf("invalid boolean flag %s: %v", name, err)
+			if fv, ok := flag.Value.(BoolValue); ok && fv.IsBool() {
+				if err := f.set(flag, "true"); err != nil {
+					return args, f.failf("invalid boolean flag: -%s", string(short))
 				}
 			} else {
-				return args, f.failf("flag needs an argument: -%s", name)
+				return args, f.failf("flag needs an argument: -%s", string(short))
 			}
 		}
 	}
 
-	return
+	return args, nil
 }
 
 func (f *FlagSet) Lookup(name string) *Flag {
